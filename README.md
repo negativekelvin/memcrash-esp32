@@ -16,15 +16,15 @@ Runs on any ESP32-WROVER module
 
 Our advertisment block:
 
-- please take a look at www.lowjs.org for Node.JS on ESP32:
+- Please take a look at www.lowjs.org for Node.JS on ESP32:
   scalable, feature rich programming of microcontrollers done easily
 
-- please take a look at www.neonious.com for a great microcontroller board
+- Please take a look at www.neonious.com for a great microcontroller board
   with Ethernet and Wifi
   wifi an integrated IDE + debugger on board
   and more!
 
-- please take a look at our blog www.neonious-basics.com for interesting news
+- Please take a look at our blog www.neonious-basics.com for interesting news
   and blog posts which educate you about electronics
 
 ********************************************************************************
