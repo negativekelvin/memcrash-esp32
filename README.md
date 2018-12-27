@@ -1,7 +1,8 @@
 memcrash by neonious GmbH
 
 Written 2018-12-27,
-tested with current ESP-IDF (commit 1023ff73fb2edea8e5abb413997e2a2ce4998771)
+tested with current ESP-IDF (commit 1023ff73fb2edea8e5abb413997e2a2ce4998771),
+compiled under Mac OS X.
 
 Demonstrates PSRAM on ESP32 still has issues which results into crashes.
 Works directly with PSRAM, because of this malloc on PSRAM is not enabled.
