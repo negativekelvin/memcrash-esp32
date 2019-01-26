@@ -7,5 +7,5 @@ PROJECT_NAME := memtest
 
 ESP_IDF_VERSION := esp-idf
 
-IDF_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))/../$(ESP_IDF_VERSION)
+IDF_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))/$(ESP_IDF_VERSION)
 include $(IDF_PATH)/make/project.mk

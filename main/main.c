@@ -1,16 +1,27 @@
 /*
 memcrash by neonious GmbH
 
-Written 2018-12-27,
-tested with current ESP-IDF (commit 1023ff73fb2edea8e5abb413997e2a2ce4998771)
-
 Demonstrates PSRAM on ESP32 still has issues which results into crashes.
 Works directly with PSRAM, because of this malloc on PSRAM is not enabled.
 
-The assignment in crash_set_both_broken does not work reliably, while
-the assignment in crash_set_both_working does.
+There only seems to be two workarounds:
 
-Runs on any ESP32-WROVER module
+- Use only the first 2 MB of 4 MB of PSRAM (big penalty)
+
+- End every function which stores to PSRAM with a memw instruction
+  (slow). nops do not help.
+
+How to compile and try out yourself (runs on any ESP32-WROVER module):
+
+- clone git
+- cd memcrash-esp32
+- git submodule update --init --recursive
+- make menuconfig  <-- change path to flasher here
+- make flash monitor
+
+Written 2018-12-27,
+tested with current ESP-IDF (commit 1023ff73fb2edea8e5abb413997e2a2ce4998771)
+Updated on 2019-01-26
 
 ********************************************************************************
 
@@ -35,25 +46,20 @@ Our advertisment block:
 
 #include <stdio.h>
 
-struct chunk
+void crash_set_both(int *mem1, int *mem2, int val)
 {
-    struct chunk *entry;
-};
+    *mem1 = val;
+    *mem2 = val;
 
-void crash_set_both_broken(struct chunk *parent1, struct chunk *parent2, struct chunk *child)
-{
-    parent1->entry = parent2->entry = child;
-}
-
-void crash_set_both_working(struct chunk *parent1, struct chunk *parent2, struct chunk *child)
-{
-    parent1->entry = child;
-    parent2->entry = child;
+#if 0
+    // This works, but is slow!
+    asm("memw");
+#endif
 }
 
 void app_main(void)
 {
-    int tries = 0, waitTicks = 10000;
+    int tries = 0, waitTicks = 1000;
     int startTicks = xTaskGetTickCount();
 
     while(1)
@@ -62,29 +68,27 @@ void app_main(void)
         int tim = ticks - startTicks;
         if(tim >= waitTicks)
         {
-            waitTicks += 10000;
+            waitTicks += 1000;
             printf("At tick: %d  tries per ms: %.2lf\n", tim, tries / (double)tim);
         }
 
-        // Find 3 random points in memory
-        int pos1 = (rand() % (4 * 1024 * 1024 - sizeof(struct chunk))) & ~7;
-        int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(struct chunk))) & ~7;
-        int pos3 = (rand() % (4 * 1024 * 1024 - sizeof(struct chunk))) & ~7;
-        if(pos1 == pos2 || pos2 == pos3 || pos1 == pos3)
+        // pos1 must be in upper 2 MB of RAM
+        int pos1 = 2 * 1024 * 1024 + ((rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3);
+        // pos1 must be in lower 2 MB of RAM
+        int pos2 = (rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3;
+
+        int *mem1 = (int *)(0x3F800000 + pos1);
+        int *mem2 = (int *)(0x3F800000 + pos2);
+        int val = rand();
+
+        if(pos1 == pos2)
             continue;
 
-        struct chunk *parent1 = (struct chunk *)(0x3F800000 + pos1);
-        struct chunk *parent2 = (struct chunk *)(0x3F800000 + pos2);
-        struct chunk *child = (struct chunk *)(0x3F800000 + pos3);
-
-#if 1   // THIS DOES NOT WORK ALL THE TIME
-        crash_set_both_broken(parent1, parent2, child);
-#else   // THIS ALWAYS WORKS
-        crash_set_both_working(parent1, parent2, child);
-#endif
-
-        if(parent1->entry != child || parent2->entry != child)
-            printf("Try %d did not work, addresses in SPI RAM (base=0): parents: %08x %08x child: %08x!\n", tries, pos1, pos2, pos3);
+        // write
+        crash_set_both(mem1, mem2, val);
+        // read
+        if(*mem2 != val)
+            printf("Try %d did not work, addresses in SPI RAM (base=0): %08x %08x!\n", tries, pos1, pos2);
 
         tries++;
     }
