@@ -81,9 +81,6 @@ void app_main(void)
         int *mem2 = (int *)(0x3F800000 + pos2);
         int val = rand();
 
-        if(pos1 == pos2)
-            continue;
-
         // write
         crash_set_both(mem1, mem2, val);
         // read
