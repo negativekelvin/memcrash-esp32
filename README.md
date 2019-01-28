@@ -1,7 +1,7 @@
 memcrash by neonious GmbH
 
 Demonstrates PSRAM on ESP32 still has issues which results into crashes.
-Works directly with PSRAM, because of this malloc on PSRAM is not enabled.
+Works with any ESP32-WROVER based board, even one's with the current revision 1.
 
 There only seems to be two workarounds:
 
