@@ -74,7 +74,7 @@ void app_main(void)
 
         // pos1 must be in upper 2 MB of RAM
         int pos1 = 2 * 1024 * 1024 + ((rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3);
-        // pos1 must be in lower 2 MB of RAM
+        // pos2 must be in lower 2 MB of RAM
         int pos2 = (rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3;
 
         int *mem1 = (int *)(0x3F800000 + pos1);
