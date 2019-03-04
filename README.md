@@ -3,9 +3,15 @@ memcrash by neonious GmbH
 Demonstrates PSRAM on ESP32 still has issues which results into crashes.
 Works with any ESP32-WROVER based board, even one's with the current revision 1.
 
+Note: low.js/neonious one is stable due to workaround.
+
 There only seems to be two workarounds:
 
-- Use only the first 2 MB of 4 MB of PSRAM (big penalty)
+- Switch to unicore mode. The problem exists because each half of the 4 MB of PSRAM
+  is handled by one core in dualcore mode and the problem only happens if the current
+  thread is running on the other code.
+  (This is the workaround we are using on low.js. JavaScript is non-multithreaded anyways,
+  so not a big penalty for us)
 
 - End every function which stores to PSRAM with a memw instruction
 (slow). nops do not help.
