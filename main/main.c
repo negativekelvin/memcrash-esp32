@@ -101,7 +101,7 @@ void mem_task()
         int val = rand();
 
         //write
-        crash_set_both_1(mem1, mem2, val);
+        crash_set_both(mem1, mem2, val);
         //read
         
         if(*mem2 != val)
