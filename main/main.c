@@ -43,24 +43,81 @@ Our advertisment block:
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
-
 #include <stdio.h>
 
 void crash_set_both(int *mem1, int *mem2, int val)
 {
     *mem1 = val;
     *mem2 = val;
-
+    
 #if 0
     // This works, but is slow!
     asm("memw");
 #endif
+
 }
 
-void app_main(void)
+void crash_set_both_1(int *mem1, int *mem2, int val)
+{
+    *mem2 = val;
+    *mem1 = val;
+        
+#if 0
+    // This works, but is slow!
+    asm("memw");
+#endif
+
+}
+
+void mem_task()
 {
     int tries = 0, waitTicks = 1000;
     int startTicks = xTaskGetTickCount();
+    
+    printf("mem_task start on core %i\n", xPortGetCoreID());
+
+    while(1)
+    {
+        int ticks = xTaskGetTickCount();
+        int tim = ticks - startTicks;
+        if(tim >= waitTicks)
+        {
+            waitTicks += 1000;
+            printf("At tick: %d  tries per ms: %.2lf\n", tim, tries / (double)tim);
+        }
+        
+#if 1
+        // pos1 must be in upper 2 MB of RAM
+        int pos1 = 2 * 1024 * 1024 + ((rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3);
+        // pos2 must be in lower 2 MB of RAM
+        int pos2 = (rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3;
+#else        
+        int pos1 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
+        int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
+#endif
+
+        int *mem1 = (int *)(0x3F800000 + pos1);
+        int *mem2 = (int *)(0x3F800000 + pos2);
+        int val = rand();
+
+        //write
+        crash_set_both_1(mem1, mem2, val);
+        //read
+        
+        if(*mem2 != val)
+            printf("mem2: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
+        if(*mem1 != val)
+            printf("mem1: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
+        tries++;
+    }
+}
+
+void mem_task_1()
+{
+    int tries = 0, waitTicks = 1000;
+    int startTicks = xTaskGetTickCount();
+    
+    printf("mem_task start on core %i\n", xPortGetCoreID());
 
     while(1)
     {
@@ -76,17 +133,27 @@ void app_main(void)
         int pos1 = 2 * 1024 * 1024 + ((rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3);
         // pos2 must be in lower 2 MB of RAM
         int pos2 = (rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3;
+        
+        //int pos1 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
+        //int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
 
         int *mem1 = (int *)(0x3F800000 + pos1);
         int *mem2 = (int *)(0x3F800000 + pos2);
         int val = rand();
 
-        // write
-        crash_set_both(mem1, mem2, val);
-        // read
+        //write
+        crash_set_both_1(mem1, mem2, val);
+        //read
+        if(*mem1 != val)
+            printf("mem1: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
         if(*mem2 != val)
-            printf("Try %d did not work, addresses in SPI RAM (base=0): %08x %08x!\n", tries, pos1, pos2);
-
+            printf("mem2: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
         tries++;
     }
+}
+
+void app_main(void)
+{
+    xTaskCreatePinnedToCore(mem_task_1, "mem_task", 1024*4, NULL, 5, NULL,1);
+    xTaskCreatePinnedToCore(mem_task, "mem_task", 1024*4, NULL, 5, NULL,0);
 }
