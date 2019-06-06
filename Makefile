@@ -7,5 +7,7 @@ PROJECT_NAME := memtest
 
 ESP_IDF_VERSION := esp-idf
 
-IDF_PATH := $(dir $(realpath $(firstword $(MAKEFILE_LIST))))/$(ESP_IDF_VERSION)
+CFLAGS+=-mfix-esp32-psram-cache-dupldst
+CXXFLAGS+=-mfix-esp32-psram-cache-dupldst
+
 include $(IDF_PATH)/make/project.mk
