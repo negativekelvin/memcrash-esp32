@@ -71,7 +71,7 @@ void crash_set_both_1(int *mem1, int *mem2, int val)
 
 void mem_task()
 {
-    int tries = 0, waitTicks = 1000;
+    unsigned int tries = 0, fails = 0, waitTicks = 1000;
     int startTicks = xTaskGetTickCount();
     
     printf("mem_task start on core %i\n", xPortGetCoreID());
@@ -83,18 +83,18 @@ void mem_task()
         if(tim >= waitTicks)
         {
             waitTicks += 1000;
-            printf("At tick: %d  tries per ms: %.2lf\n", tim, tries / (double)tim);
+            printf("Core %i at tick: %d  tries per ms: %.2lf, total failures/tries %i/%i\n", xPortGetCoreID(), tim, tries / (double)tim, fails, tries);
         }
         
-#if 1
+    #if 1
         // pos1 must be in upper 2 MB of RAM
         int pos1 = 2 * 1024 * 1024 + ((rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3);
         // pos2 must be in lower 2 MB of RAM
         int pos2 = (rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3;
-#else        
+    #else        
         int pos1 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
         int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
-#endif
+    #endif
 
         int *mem1 = (int *)(0x3F800000 + pos1);
         int *mem2 = (int *)(0x3F800000 + pos2);
@@ -105,16 +105,22 @@ void mem_task()
         //read
         
         if(*mem2 != val)
+        {
             printf("mem2: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
+            fails++;
+        }
         if(*mem1 != val)
+        {
             printf("mem1: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
+            fails++;
+        }
         tries++;
     }
 }
 
 void mem_task_1()
 {
-    int tries = 0, waitTicks = 1000;
+    unsigned int tries = 0, fails = 0, waitTicks = 1000;
     int startTicks = xTaskGetTickCount();
     
     printf("mem_task start on core %i\n", xPortGetCoreID());
@@ -126,17 +132,19 @@ void mem_task_1()
         if(tim >= waitTicks)
         {
             waitTicks += 1000;
-            printf("At tick: %d  tries per ms: %.2lf\n", tim, tries / (double)tim);
+            printf("Core %i at tick: %d  tries per ms: %.2lf, total failures/tries %i/%i\n", xPortGetCoreID(), tim, tries / (double)tim, fails, tries);
         }
 
+    #if 1
         // pos1 must be in upper 2 MB of RAM
         int pos1 = 2 * 1024 * 1024 + ((rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3);
         // pos2 must be in lower 2 MB of RAM
         int pos2 = (rand() % (2 * 1024 * 1024 - sizeof(void *))) & ~3;
-        
-        //int pos1 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
-        //int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
-
+    #else    
+        int pos1 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
+        int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
+    #endif
+    
         int *mem1 = (int *)(0x3F800000 + pos1);
         int *mem2 = (int *)(0x3F800000 + pos2);
         int val = rand();
@@ -145,9 +153,15 @@ void mem_task_1()
         crash_set_both_1(mem1, mem2, val);
         //read
         if(*mem1 != val)
+        {
             printf("mem1: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
+            fails++;
+        }
         if(*mem2 != val)
+        {
             printf("mem2: Try %d did not work on core %i, addresses in SPI RAM (base=0): %08x (%i) %08x! (%i)\n", tries, xPortGetCoreID(), pos1, ((pos1 / 0x20) & 1), pos2, ((pos2 / 0x20) & 1));
+            fails++;
+        }
         tries++;
     }
 }
