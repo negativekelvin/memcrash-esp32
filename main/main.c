@@ -72,7 +72,7 @@ void crash_set_both_1(int *mem1, int *mem2, int val)
 void mem_task()
 {
     unsigned int tries = 0, fails = 0, waitTicks = 1000;
-    int startTicks = xTaskGetTickCount();
+    TickType_t startTicks = xTaskGetTickCount();
     
     printf("mem_task start on core %i\n", xPortGetCoreID());
 
@@ -83,7 +83,7 @@ void mem_task()
         if(tim >= waitTicks)
         {
             waitTicks += 1000;
-            printf("Core %i at tick: %d  tries per ms: %.2lf, total failures/tries %i/%i\n", xPortGetCoreID(), tim, tries / (double)tim, fails, tries);
+            printf("Core %i at tick: %u  tries per ms: %.2lf, total failures/tries %u/%u\n", xPortGetCoreID(), tim, tries / (double)tim, fails, tries);
         }
         
     #if 1
@@ -96,8 +96,8 @@ void mem_task()
         int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
     #endif
 
-        int *mem1 = (int *)(0x3F800000 + pos1);
-        int *mem2 = (int *)(0x3F800000 + pos2);
+        int *mem1 = (int *)(0x3F800000 + (pos1 & ~0b100)); //even word address
+        int *mem2 = (int *)(0x3F800000 + (pos2 & ~0b100)); //even word address
         int val = rand();
 
         //write
@@ -121,7 +121,7 @@ void mem_task()
 void mem_task_1()
 {
     unsigned int tries = 0, fails = 0, waitTicks = 1000;
-    int startTicks = xTaskGetTickCount();
+    TickType_t startTicks = xTaskGetTickCount();
     
     printf("mem_task start on core %i\n", xPortGetCoreID());
 
@@ -132,7 +132,7 @@ void mem_task_1()
         if(tim >= waitTicks)
         {
             waitTicks += 1000;
-            printf("Core %i at tick: %d  tries per ms: %.2lf, total failures/tries %i/%i\n", xPortGetCoreID(), tim, tries / (double)tim, fails, tries);
+            printf("Core %i at tick: %u  tries per ms: %.2lf, total failures/tries %u/%u\n", xPortGetCoreID(), tim, tries / (double)tim, fails, tries);
         }
 
     #if 1
@@ -145,8 +145,8 @@ void mem_task_1()
         int pos2 = (rand() % (4 * 1024 * 1024 - sizeof(void *))) & ~3;
     #endif
     
-        int *mem1 = (int *)(0x3F800000 + pos1);
-        int *mem2 = (int *)(0x3F800000 + pos2);
+        int *mem1 = (int *)(0x3F800000 + (pos1 | 0b100)); //odd word address
+        int *mem2 = (int *)(0x3F800000 + (pos2 | 0b100)); //odd word address
         int val = rand();
 
         //write
